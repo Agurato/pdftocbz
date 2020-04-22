@@ -10,7 +10,6 @@ import sys
 import zlib
 
 
-
 def get_color_mode(obj):
 
     try:
@@ -83,19 +82,21 @@ def get_pdf_images(pdf_fp):
 def pdf_to_cbz(file_path, out_folder):
     if not p.exists(out_folder):
         os.makedirs(out_folder)
-    
+
     file_basename = p.splitext(p.basename(file_path))[0]
 
-    with ZipFile(p.join(out_folder, file_basename+".cbz"), "w") as cbz:
+    with ZipFile(p.join(out_folder, file_basename + ".cbz"), "w") as cbz:
 
         count = 0
-        
+
         pdf_images = get_pdf_images(file_path)
 
-        image_name_size = math.log10(len(pdf_images))+1
+        image_name_size = math.log10(len(pdf_images)) + 1
         for image in pdf_images:
             (mode, size, data) = image
-            image_name = str(count).zfill(int(image_name_size))+"."+imghdr.what(None, h=data)
+            image_name = (
+                str(count).zfill(int(image_name_size)) + "." + imghdr.what(None, h=data)
+            )
             cbz.writestr(zinfo_or_arcname=image_name, data=data)
             count += 1
 
@@ -136,5 +137,5 @@ if __name__ == "__main__":
             if p.isfile(file_path) and file_path[-4:] == ".pdf":
                 pdf_to_cbz(file_path, out_folder)
                 pdf_count += 1
-    
+
     print(f"Converted {pdf_count} PDF in {datetime.now() - startTime}")
