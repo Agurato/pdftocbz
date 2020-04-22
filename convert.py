@@ -1,13 +1,14 @@
+from datetime import datetime
 from io import BytesIO
-from PIL import Image
 from PyPDF2 import PdfFileReader, generic
 from zipfile import ZipFile
+import imghdr
 import math
 import os
 import os.path as p
-import shutil
 import sys
 import zlib
+
 
 
 def get_color_mode(obj):
@@ -84,31 +85,19 @@ def pdf_to_cbz(file_path, out_folder):
         os.makedirs(out_folder)
     
     file_basename = p.splitext(p.basename(file_path))[0]
-    images_folder = p.join(out_folder, file_basename)
 
     with ZipFile(p.join(out_folder, file_basename+".cbz"), "w") as cbz:
 
         count = 0
-        if not p.exists(images_folder):
-            os.makedirs(images_folder)
         
         pdf_images = get_pdf_images(file_path)
 
         image_name_size = math.log10(len(pdf_images))+1
         for image in pdf_images:
             (mode, size, data) = image
-            try:
-                img = Image.open(BytesIO(data))
-            except Exception as e:
-                print("Failed to read image with PIL: {}".format(e))
-                continue
-            image_name = str(count).zfill(int(image_name_size))+".png"
-            image_path = p.join(f"{images_folder}", image_name)
-            img.save(image_path)
-            cbz.write(filename=image_path, arcname=image_name)
+            image_name = str(count).zfill(int(image_name_size))+"."+imghdr.what(None, h=data)
+            cbz.writestr(zinfo_or_arcname=image_name, data=data)
             count += 1
-    
-    shutil.rmtree(images_folder)
 
 
 if __name__ == "__main__":
@@ -116,6 +105,9 @@ if __name__ == "__main__":
     Utilization:
     pthon convert.py <PDF or folder of PDFs to convert> [<output folder>]
     """
+
+    startTime = datetime.now()
+    pdf_count = 0
 
     out_folder = ""
     if len(sys.argv) > 1:
@@ -133,6 +125,7 @@ if __name__ == "__main__":
         file_path = p.abspath(in_folder)
 
         pdf_to_cbz(file_path, out_folder)
+        pdf_count += 1
     # If input is a folder, process all PDFs in it
     else:
         if out_folder == "":
@@ -142,3 +135,6 @@ if __name__ == "__main__":
             file_path = p.abspath(p.join(in_folder, filename))
             if p.isfile(file_path) and file_path[-4:] == ".pdf":
                 pdf_to_cbz(file_path, out_folder)
+                pdf_count += 1
+    
+    print(f"Converted {pdf_count} PDF in {datetime.now() - startTime}")
