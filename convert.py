@@ -10,6 +10,7 @@ import zlib
 
 
 def get_object_images(x_obj):
+    """Get all images in a PDF XObject"""
     images = []
     for obj_name in x_obj:
         sub_obj = x_obj[obj_name]
@@ -28,6 +29,7 @@ def get_object_images(x_obj):
 
 
 def get_pdf_images(pdf_fp):
+    """Fetches all images in a PDF file"""
     images = []
     try:
         pdf_in = PdfFileReader(open(pdf_fp, "rb"))
@@ -49,6 +51,7 @@ def get_pdf_images(pdf_fp):
 
 
 def pdf_to_cbz(file_path, out_folder):
+    """Convert a PDF into a CBZ"""
     if not p.exists(out_folder):
         os.makedirs(out_folder)
 
@@ -58,13 +61,10 @@ def pdf_to_cbz(file_path, out_folder):
         count = 0
         pdf_images = get_pdf_images(file_path)
 
-        image_name_size = math.log10(len(pdf_images)) + 1
+        image_name_size = int(math.log10(len(pdf_images)) + 1)
         for image in pdf_images:
-            # (mode, size, data) = image
             image_name = (
-                str(count).zfill(int(image_name_size))
-                + "."
-                + imghdr.what(None, h=image)
+                f"{str(count).zfill(image_name_size)}.{imghdr.what(None, h=image)}"
             )
             cbz.writestr(zinfo_or_arcname=image_name, data=image)
             count += 1
@@ -72,8 +72,8 @@ def pdf_to_cbz(file_path, out_folder):
 
 if __name__ == "__main__":
     """
-    Utilization:
-    pthon convert.py <PDF or folder of PDFs to convert> [<output folder>]
+    Use:
+    python convert.py <PDF or folder containing PDFs to convert> [<output folder>]
     """
 
     startTime = datetime.now()
@@ -101,6 +101,7 @@ if __name__ == "__main__":
         if out_folder == "":
             out_folder = in_folder
 
+        # Start conversion for every PDF file in folder
         for filename in os.listdir(in_folder):
             file_path = p.abspath(p.join(in_folder, filename))
             if p.isfile(file_path) and file_path[-4:] == ".pdf":
