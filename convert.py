@@ -1,5 +1,4 @@
 from datetime import datetime
-from io import BytesIO
 from PyPDF2 import PdfFileReader, generic
 from zipfile import ZipFile
 import imghdr
@@ -8,30 +7,6 @@ import os
 import os.path as p
 import sys
 import zlib
-
-
-def get_color_mode(obj):
-
-    try:
-        cspace = obj["/ColorSpace"]
-    except KeyError:
-        return None
-
-    if cspace == "/DeviceRGB":
-        return "RGB"
-    elif cspace == "/DeviceCMYK":
-        return "CMYK"
-    elif cspace == "/DeviceGray":
-        return "P"
-
-    if isinstance(cspace, generic.ArrayObject) and cspace[0] == "/ICCBased":
-        color_map = obj["/ColorSpace"][1].getObject()["/N"]
-        if color_map == 1:
-            return "P"
-        elif color_map == 3:
-            return "RGB"
-        elif color_map == 4:
-            return "CMYK"
 
 
 def get_object_images(x_obj):
@@ -47,13 +22,7 @@ def get_object_images(x_obj):
             if zlib_compressed:
                 sub_obj._data = zlib.decompress(sub_obj._data)
 
-            images.append(
-                (
-                    get_color_mode(sub_obj),
-                    (sub_obj["/Width"], sub_obj["/Height"]),
-                    sub_obj._data,
-                )
-            )
+            images.append(sub_obj._data)
 
     return images
 
@@ -86,18 +55,18 @@ def pdf_to_cbz(file_path, out_folder):
     file_basename = p.splitext(p.basename(file_path))[0]
 
     with ZipFile(p.join(out_folder, file_basename + ".cbz"), "w") as cbz:
-
         count = 0
-
         pdf_images = get_pdf_images(file_path)
 
         image_name_size = math.log10(len(pdf_images)) + 1
         for image in pdf_images:
-            (mode, size, data) = image
+            # (mode, size, data) = image
             image_name = (
-                str(count).zfill(int(image_name_size)) + "." + imghdr.what(None, h=data)
+                str(count).zfill(int(image_name_size))
+                + "."
+                + imghdr.what(None, h=image)
             )
-            cbz.writestr(zinfo_or_arcname=image_name, data=data)
+            cbz.writestr(zinfo_or_arcname=image_name, data=image)
             count += 1
 
 
